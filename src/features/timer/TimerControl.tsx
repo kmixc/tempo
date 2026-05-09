@@ -10,6 +10,7 @@ import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function TimerControl() {
   const [now, setNow] = useState(() => Date.now())
+  const [timerFlash, setTimerFlash] = useState<'start' | 'stop' | null>(null)
   const user = useAuthStore((state) => state.user)
   const projects = useWorkspaceStore((state) => state.projects)
   const addEntry = useWorkspaceStore((state) => state.addEntry)
@@ -29,12 +30,23 @@ export function TimerControl() {
     return Math.floor((now - current.startedAt) / 1000)
   }, [current, now])
 
+  function flashTimer(type: 'start' | 'stop') {
+    setTimerFlash(type)
+    window.setTimeout(() => setTimerFlash(null), 900)
+  }
+
+  function handleStart() {
+    start()
+    flashTimer('start')
+  }
+
   async function handleStop() {
     if (!user) {
       return
     }
 
     const entry = stop(user.id)
+    flashTimer('stop')
     if (entry) {
       await addEntry(entry)
     }
@@ -54,7 +66,15 @@ export function TimerControl() {
   }
 
   return (
-    <Card className="p-4">
+    <Card
+      className={`p-4 transition ${
+        timerFlash === 'start'
+          ? 'timer-flash-start'
+          : timerFlash === 'stop'
+            ? 'timer-flash-stop'
+            : ''
+      }`}
+    >
       <div className="grid gap-4 xl:grid-cols-[1fr_180px_auto] xl:items-center">
         <div className="grid gap-3 md:grid-cols-[1.4fr_220px]">
           <input
@@ -87,7 +107,11 @@ export function TimerControl() {
             Stop
           </Button>
         ) : (
-          <Button disabled={!hasProjects || !draft.projectId} icon={<Play size={16} />} onClick={start}>
+          <Button
+            disabled={!hasProjects || !draft.projectId}
+            icon={<Play size={16} />}
+            onClick={handleStart}
+          >
             Start
           </Button>
         )}

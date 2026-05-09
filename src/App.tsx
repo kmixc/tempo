@@ -4,6 +4,7 @@ import { AppLayout } from './components/layout/AppLayout'
 import { AdminPage } from './features/admin/AdminPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
+import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { TeamPage } from './features/team/TeamPage'
@@ -75,6 +76,7 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/reports" element={<ReportsPage />} />
         <Route path="/admin" element={<AdminRoute />} />

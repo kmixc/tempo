@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -110,7 +111,12 @@ export function ProjectsPage() {
                     className="mb-3 h-2 w-12 rounded-full"
                     style={{ backgroundColor: project.color }}
                   />
-                  <h2 className="font-semibold">{project.name}</h2>
+                  <Link
+                    className="font-semibold text-zinc-950 hover:underline dark:text-white"
+                    to={`/projects/${project.id}`}
+                  >
+                    {project.name}
+                  </Link>
                   <p className="mt-1 text-sm text-zinc-500">{project.client}</p>
                 </div>
                 <Badge tone={project.status === 'Active' ? 'green' : 'orange'}>

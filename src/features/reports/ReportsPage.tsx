@@ -1,4 +1,5 @@
 import { BarChart3, CalendarDays, ReceiptText, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
@@ -21,8 +22,11 @@ export function ReportsPage() {
     users,
   } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
+  const [isEditing, setIsEditing] = useState(false)
   const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
   const canEditDuration = viewer ? canEditTimeEntries(viewer.role) : false
+  const showEditControls = canEditDuration && isEditing
+  const canSeeWages = viewer?.role !== 'Member'
   const totalSeconds = visibleEntries.reduce((sum, entry) => sum + entry.duration, 0)
   const billableSeconds = visibleEntries
     .filter((entry) => entry.billable)
@@ -41,7 +45,7 @@ export function ReportsPage() {
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">Reports</h1>
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid gap-4 ${canSeeWages ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <StatCard
           detail="Selected period"
           icon={<CalendarDays size={18} />}
@@ -54,16 +58,27 @@ export function ReportsPage() {
           label="Utilization"
           value={`${utilization}%`}
         />
-        <StatCard
-          detail="Uninvoiced estimate"
-          icon={<ReceiptText size={18} />}
-          label="Wages"
-          value={formatCurrency(wageValue)}
-        />
+        {canSeeWages ? (
+          <StatCard
+            detail="Based on team hourly wages"
+            icon={<ReceiptText size={18} />}
+            label="Wages"
+            value={formatCurrency(wageValue)}
+          />
+        ) : null}
       </div>
       <Card className="overflow-hidden">
-        <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-200 p-4 dark:border-zinc-800">
           <h2 className="font-semibold">Detailed entries</h2>
+          {canEditDuration ? (
+            <Button
+              className="h-9 px-3"
+              onClick={() => setIsEditing((current) => !current)}
+              variant={isEditing ? 'primary' : 'secondary'}
+            >
+              {isEditing ? 'Done' : 'Edit'}
+            </Button>
+          ) : null}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
@@ -74,7 +89,7 @@ export function ReportsPage() {
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Tags</th>
                 <th className="px-4 py-3 font-medium">Hours</th>
-                {canEditDuration ? (
+                {showEditControls ? (
                   <th className="px-4 py-3 font-medium">Actions</th>
                 ) : null}
               </tr>
@@ -87,7 +102,7 @@ export function ReportsPage() {
                 return (
                   <tr key={entry.id}>
                     <td className="px-4 py-4 font-medium">
-                      {canEditDuration ? (
+                      {showEditControls ? (
                         <input
                           className="h-9 w-56 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onBlur={(event) =>
@@ -102,7 +117,7 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4 text-zinc-500">
-                      {canEditDuration ? (
+                      {showEditControls ? (
                         <select
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onChange={(event) =>
@@ -123,7 +138,7 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4 text-zinc-500">
-                      {canEditDuration ? (
+                      {showEditControls ? (
                         <select
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onChange={(event) =>
@@ -144,7 +159,7 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      {canEditDuration ? (
+                      {showEditControls ? (
                         <input
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onBlur={(event) =>
@@ -166,7 +181,7 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      {canEditDuration ? (
+                      {showEditControls ? (
                         <input
                           className="h-9 w-24 rounded-md border border-zinc-200 bg-zinc-50 px-2 font-mono text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           min={0}
@@ -183,7 +198,7 @@ export function ReportsPage() {
                         <span className="font-mono">{formatHours(entry.duration)}</span>
                       )}
                     </td>
-                    {canEditDuration ? (
+                    {showEditControls ? (
                       <td className="px-4 py-4">
                         <Button
                           className="h-9 px-3"

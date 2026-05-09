@@ -22,6 +22,7 @@ type WorkspaceState = {
     projectId: string,
     values: Pick<Project, 'budgetHours' | 'trackedHours'>,
   ) => Promise<void>
+  updateProject: (projectId: string, values: Partial<Project>) => Promise<void>
   updateTimeEntry: (
     entryId: string,
     values: Partial<Omit<TimeEntry, 'id' | 'start' | 'end'>> & { hours?: number },
@@ -169,6 +170,20 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
       trackedHours: Math.max(0, values.trackedHours),
     }
 
+    await workspaceService.updateProject(nextProject)
+    set((state) => ({
+      projects: state.projects.map((item) =>
+        item.id === projectId ? nextProject : item,
+      ),
+    }))
+  },
+  updateProject: async (projectId, values) => {
+    const project = get().projects.find((item) => item.id === projectId)
+    if (!project) {
+      return
+    }
+
+    const nextProject = { ...project, ...values }
     await workspaceService.updateProject(nextProject)
     set((state) => ({
       projects: state.projects.map((item) =>
