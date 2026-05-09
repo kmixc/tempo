@@ -16,6 +16,10 @@ export function canEditTimeEntries(role: Role) {
   return role === 'Owner' || role === 'Admin'
 }
 
+export function canManageProjectBudgets(role: Role) {
+  return role === 'Owner' || role === 'Admin' || role === 'Manager'
+}
+
 export function hourlyRateFor(user: User | undefined) {
   return user?.hourlyRate ?? 0
 }

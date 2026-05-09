@@ -4,10 +4,14 @@ import type { FormEvent } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
+import { canManageProjectBudgets } from '../../lib/permissions'
+import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function ProjectsPage() {
-  const { addProject, projects, users } = useWorkspaceStore()
+  const { addProject, projects, updateProjectBudget, users } = useWorkspaceStore()
+  const viewer = useAuthStore((state) => state.user)
+  const canEditBudgets = viewer ? canManageProjectBudgets(viewer.role) : false
   const [name, setName] = useState('')
   const [client, setClient] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
@@ -124,6 +128,46 @@ export function ProjectsPage() {
                     style={{ backgroundColor: project.color, width: `${progress}%` }}
                   />
                 </div>
+                {canEditBudgets ? (
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <label>
+                      <span className="text-xs font-medium text-zinc-500">
+                        Tracked
+                      </span>
+                      <input
+                        className="mt-1 h-9 w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                        min={0}
+                        onBlur={(event) =>
+                          updateProjectBudget(project.id, {
+                            budgetHours: project.budgetHours,
+                            trackedHours: Number(event.currentTarget.value),
+                          })
+                        }
+                        step={0.25}
+                        type="number"
+                        defaultValue={project.trackedHours.toFixed(2)}
+                      />
+                    </label>
+                    <label>
+                      <span className="text-xs font-medium text-zinc-500">
+                        Budget
+                      </span>
+                      <input
+                        className="mt-1 h-9 w-full rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                        min={0}
+                        onBlur={(event) =>
+                          updateProjectBudget(project.id, {
+                            budgetHours: Number(event.currentTarget.value),
+                            trackedHours: project.trackedHours,
+                          })
+                        }
+                        step={0.25}
+                        type="number"
+                        defaultValue={project.budgetHours.toFixed(2)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
               </div>
               <div className="mt-5 flex -space-x-2">
                 {project.members.map((memberId) => {

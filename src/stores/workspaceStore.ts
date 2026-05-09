@@ -18,7 +18,16 @@ type WorkspaceState = {
   addUserToTeam: (teamId: string, userId: string) => Promise<void>
   assignRole: (userId: string, role: Role) => Promise<void>
   updateUserHourlyRate: (userId: string, hourlyRate: number) => Promise<void>
+  updateProjectBudget: (
+    projectId: string,
+    values: Pick<Project, 'budgetHours' | 'trackedHours'>,
+  ) => Promise<void>
+  updateTimeEntry: (
+    entryId: string,
+    values: Partial<Omit<TimeEntry, 'id' | 'start' | 'end'>> & { hours?: number },
+  ) => Promise<void>
   updateTimeEntryDuration: (entryId: string, hours: number) => Promise<void>
+  deleteTimeEntry: (entryId: string) => Promise<void>
   deleteUserEverywhere: (userId: string) => Promise<void>
 }
 
@@ -148,34 +157,105 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
       users: state.users.map((item) => (item.id === userId ? nextUser : item)),
     }))
   },
-  updateTimeEntryDuration: async (entryId, hours) => {
+  updateProjectBudget: async (projectId, values) => {
+    const project = get().projects.find((item) => item.id === projectId)
+    if (!project) {
+      return
+    }
+
+    const nextProject = {
+      ...project,
+      budgetHours: Math.max(0, values.budgetHours),
+      trackedHours: Math.max(0, values.trackedHours),
+    }
+
+    await workspaceService.updateProject(nextProject)
+    set((state) => ({
+      projects: state.projects.map((item) =>
+        item.id === projectId ? nextProject : item,
+      ),
+    }))
+  },
+  updateTimeEntry: async (entryId, values) => {
     const entry = get().timeEntries.find((item) => item.id === entryId)
     if (!entry) {
       return
     }
 
-    const nextDuration = Math.max(0, Math.round(hours * 3600))
+    const nextDuration =
+      values.hours === undefined
+        ? entry.duration
+        : Math.max(0, Math.round(values.hours * 3600))
     const durationDeltaHours = (nextDuration - entry.duration) / 3600
-    const nextEntry = { ...entry, duration: nextDuration }
+    const projectChanged = values.projectId && values.projectId !== entry.projectId
+    const nextEntry = {
+      ...entry,
+      ...values,
+      duration: nextDuration,
+    }
+    delete nextEntry.hours
     const projects = get().projects.map((project) =>
-      project.id === entry.projectId
+      project.id === entry.projectId && projectChanged
+        ? {
+            ...project,
+            trackedHours: Math.max(0, project.trackedHours - entry.duration / 3600),
+          }
+        : project.id === nextEntry.projectId && projectChanged
+          ? {
+              ...project,
+              trackedHours: project.trackedHours + nextDuration / 3600,
+            }
+          : project.id === entry.projectId
         ? {
             ...project,
             trackedHours: Math.max(0, project.trackedHours + durationDeltaHours),
           }
         : project,
     )
-    const updatedProject = projects.find((project) => project.id === entry.projectId)
 
     await workspaceService.updateEntry(nextEntry)
-    if (updatedProject) {
-      await workspaceService.updateProject(updatedProject)
-    }
+    await Promise.all(
+      projects
+        .filter((project) => {
+          const oldProject = get().projects.find((item) => item.id === project.id)
+          return oldProject && oldProject.trackedHours !== project.trackedHours
+        })
+        .map((project) => workspaceService.updateProject(project)),
+    )
 
     set((state) => ({
       timeEntries: state.timeEntries.map((item) =>
         item.id === entryId ? nextEntry : item,
       ),
+      projects,
+    }))
+  },
+  updateTimeEntryDuration: async (entryId, hours) => {
+    await get().updateTimeEntry(entryId, { hours })
+  },
+  deleteTimeEntry: async (entryId) => {
+    const entry = get().timeEntries.find((item) => item.id === entryId)
+    if (!entry) {
+      return
+    }
+
+    const projects = get().projects.map((project) =>
+      project.id === entry.projectId
+        ? {
+            ...project,
+            trackedHours: Math.max(0, project.trackedHours - entry.duration / 3600),
+          }
+        : project,
+    )
+    const updatedProject = projects.find((project) => project.id === entry.projectId)
+
+    await workspaceService.deleteEntry(entryId)
+    if (updatedProject) {
+      await workspaceService.updateProject(updatedProject)
+    }
+
+    set((state) => ({
+      timeEntries: state.timeEntries.filter((item) => item.id !== entryId),
       projects,
     }))
   },

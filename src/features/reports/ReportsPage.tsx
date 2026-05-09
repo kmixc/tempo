@@ -1,5 +1,6 @@
-import { BarChart3, CalendarDays, ReceiptText } from 'lucide-react'
+import { BarChart3, CalendarDays, ReceiptText, Trash2 } from 'lucide-react'
 import { Badge } from '../../components/ui/Badge'
+import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
@@ -12,7 +13,13 @@ import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function ReportsPage() {
-  const { projects, timeEntries, updateTimeEntryDuration, users } = useWorkspaceStore()
+  const {
+    deleteTimeEntry,
+    projects,
+    timeEntries,
+    updateTimeEntry,
+    users,
+  } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
   const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
   const canEditDuration = viewer ? canEditTimeEntries(viewer.role) : false
@@ -67,6 +74,9 @@ export function ReportsPage() {
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Tags</th>
                 <th className="px-4 py-3 font-medium">Hours</th>
+                {canEditDuration ? (
+                  <th className="px-4 py-3 font-medium">Actions</th>
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -76,15 +86,84 @@ export function ReportsPage() {
 
                 return (
                   <tr key={entry.id}>
-                    <td className="px-4 py-4 font-medium">{entry.description}</td>
-                    <td className="px-4 py-4 text-zinc-500">{project?.name}</td>
-                    <td className="px-4 py-4 text-zinc-500">{user?.name}</td>
+                    <td className="px-4 py-4 font-medium">
+                      {canEditDuration ? (
+                        <input
+                          className="h-9 w-56 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          onBlur={(event) =>
+                            updateTimeEntry(entry.id, {
+                              description: event.currentTarget.value,
+                            })
+                          }
+                          defaultValue={entry.description}
+                        />
+                      ) : (
+                        entry.description
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-zinc-500">
+                      {canEditDuration ? (
+                        <select
+                          className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          onChange={(event) =>
+                            updateTimeEntry(entry.id, {
+                              projectId: event.currentTarget.value,
+                            })
+                          }
+                          value={entry.projectId}
+                        >
+                          {projects.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        project?.name
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-zinc-500">
+                      {canEditDuration ? (
+                        <select
+                          className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          onChange={(event) =>
+                            updateTimeEntry(entry.id, {
+                              userId: event.currentTarget.value,
+                            })
+                          }
+                          value={entry.userId}
+                        >
+                          {users.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        user?.name
+                      )}
+                    </td>
                     <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {entry.tags.map((tag) => (
-                          <Badge key={tag}>{tag}</Badge>
-                        ))}
-                      </div>
+                      {canEditDuration ? (
+                        <input
+                          className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          onBlur={(event) =>
+                            updateTimeEntry(entry.id, {
+                              tags: event.currentTarget.value
+                                .split(',')
+                                .map((tag) => tag.trim())
+                                .filter(Boolean),
+                            })
+                          }
+                          defaultValue={entry.tags.join(', ')}
+                        />
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {entry.tags.map((tag) => (
+                            <Badge key={tag}>{tag}</Badge>
+                          ))}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4">
                       {canEditDuration ? (
@@ -92,10 +171,9 @@ export function ReportsPage() {
                           className="h-9 w-24 rounded-md border border-zinc-200 bg-zinc-50 px-2 font-mono text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           min={0}
                           onBlur={(event) =>
-                            updateTimeEntryDuration(
-                              entry.id,
-                              Number(event.currentTarget.value),
-                            )
+                            updateTimeEntry(entry.id, {
+                              hours: Number(event.currentTarget.value),
+                            })
                           }
                           step={0.25}
                           type="number"
@@ -105,6 +183,18 @@ export function ReportsPage() {
                         <span className="font-mono">{formatHours(entry.duration)}</span>
                       )}
                     </td>
+                    {canEditDuration ? (
+                      <td className="px-4 py-4">
+                        <Button
+                          className="h-9 px-3"
+                          icon={<Trash2 size={14} />}
+                          onClick={() => deleteTimeEntry(entry.id)}
+                          variant="danger"
+                        >
+                          Delete
+                        </Button>
+                      </td>
+                    ) : null}
                   </tr>
                 )
               })}
