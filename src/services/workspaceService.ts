@@ -58,6 +58,21 @@ export const workspaceService = {
   async updateTeam(team: Team) {
     await updateDoc(doc(firestore, 'teams', team.id), { ...team })
   },
+  async deleteTeamEverywhere(params: { team: Team; users: User[] }) {
+    const batch = writeBatch(firestore)
+
+    batch.delete(doc(firestore, 'teams', params.team.id))
+
+    params.users.forEach((user) => {
+      if (user.teamId === params.team.id || params.team.userIds.includes(user.id)) {
+        batch.update(doc(firestore, 'users', user.id), {
+          teamId: '',
+        })
+      }
+    })
+
+    await batch.commit()
+  },
   async updateUser(user: User) {
     await updateDoc(doc(firestore, 'users', user.id), { ...user })
   },

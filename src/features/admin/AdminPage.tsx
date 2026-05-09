@@ -33,6 +33,7 @@ export function AdminPage() {
     addTeam,
     addUserToTeam,
     assignRole,
+    deleteTeamEverywhere,
     deleteUserEverywhere,
     projects,
     removeUserFromTeam,
@@ -101,6 +102,27 @@ export function AdminPage() {
     } catch (error) {
       setDeleteError(
         error instanceof Error ? error.message : 'Unable to delete this user.',
+      )
+    }
+  }
+
+  async function handleDeleteTeam(teamId: string) {
+    setDeleteError(null)
+
+    const team = teams.find((item) => item.id === teamId)
+    const confirmed = window.confirm(
+      `Delete ${team?.name ?? 'this team'} and remove its member assignments?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await deleteTeamEverywhere(teamId)
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete this team.',
       )
     }
   }
@@ -526,9 +548,20 @@ export function AdminPage() {
                   <h2 className="font-semibold">{team.name}</h2>
                   <p className="mt-1 text-sm text-zinc-500">{team.description}</p>
                 </div>
-                <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
-                  {members.length} users
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-300">
+                    {members.length} users
+                  </span>
+                  <Button
+                    className="h-8 px-3"
+                    icon={<Trash2 size={14} />}
+                    onClick={() => handleDeleteTeam(team.id)}
+                    type="button"
+                    variant="danger"
+                  >
+                    Delete
+                  </Button>
+                </div>
               </div>
               <div className="space-y-3">
                 {members.map((member) => (

@@ -69,6 +69,7 @@ type WorkspaceState = {
   addUser: (user: User) => Promise<void>
   removeUserFromTeam: (teamId: string, userId: string) => Promise<void>
   addUserToTeam: (teamId: string, userId: string) => Promise<void>
+  deleteTeamEverywhere: (teamId: string) => Promise<void>
   assignRole: (userId: string, role: Role) => Promise<void>
   updateUserHourlyRate: (userId: string, hourlyRate: number) => Promise<void>
   updateProjectBudget: (
@@ -188,6 +189,31 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     set((state) => ({
       teams: state.teams.map((item) => (item.id === teamId ? nextTeam : item)),
       users: state.users.map((item) => (item.id === userId && nextUser ? nextUser : item)),
+    }))
+  },
+  deleteTeamEverywhere: async (teamId) => {
+    const team = get().teams.find((item) => item.id === teamId)
+    if (!team) {
+      return
+    }
+
+    const affectedUserIds = new Set(
+      get()
+        .users
+        .filter((user) => user.teamId === teamId || team.userIds.includes(user.id))
+        .map((user) => user.id),
+    )
+
+    await workspaceService.deleteTeamEverywhere({
+      team,
+      users: get().users,
+    })
+
+    set((state) => ({
+      teams: state.teams.filter((item) => item.id !== teamId),
+      users: state.users.map((user) =>
+        affectedUserIds.has(user.id) ? { ...user, teamId: '' } : user,
+      ),
     }))
   },
   assignRole: async (userId, role) => {
