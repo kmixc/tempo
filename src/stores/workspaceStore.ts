@@ -8,6 +8,7 @@ type WorkspaceState = {
   projects: Project[]
   timeEntries: TimeEntry[]
   isLoading: boolean
+  hasLoaded: boolean
   error: string | null
   loadWorkspace: () => Promise<void>
   addEntry: (entry: TimeEntry) => Promise<void>
@@ -38,16 +39,18 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
   projects: [],
   timeEntries: [],
   isLoading: false,
+  hasLoaded: false,
   error: null,
   loadWorkspace: async () => {
     set({ isLoading: true, error: null })
     try {
       const workspace = await workspaceService.getWorkspace()
-      set({ ...workspace, isLoading: false })
+      set({ ...workspace, isLoading: false, hasLoaded: true })
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Unable to load workspace.',
         isLoading: false,
+        hasLoaded: true,
       })
     }
   },

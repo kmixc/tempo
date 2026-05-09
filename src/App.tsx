@@ -8,13 +8,15 @@ import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { ReportsPage } from './features/reports/ReportsPage'
 import { TeamPage } from './features/team/TeamPage'
-import { canAccessAdmin, canAccessApp } from './lib/permissions'
+import { canAccessAdmin, canAccessApp, teamForUser } from './lib/permissions'
 import { useAuthStore } from './stores/authStore'
 import { useWorkspaceStore } from './stores/workspaceStore'
 
 function ProtectedRoute() {
   const user = useAuthStore((state) => state.user)
   const isReady = useAuthStore((state) => state.isReady)
+  const hasLoadedWorkspace = useWorkspaceStore((state) => state.hasLoaded)
+  const teams = useWorkspaceStore((state) => state.teams)
 
   if (!isReady) {
     return (
@@ -37,6 +39,30 @@ function ProtectedRoute() {
           </h1>
           <p className="mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
             Ask the workspace owner to approve this account if you need access.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (user.role === 'Member' && !hasLoadedWorkspace) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-sm text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+        Loading workspace...
+      </div>
+    )
+  }
+
+  if (user.role === 'Member' && !teamForUser(user, teams)) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6 text-center dark:bg-zinc-950">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-950 dark:text-white">
+            No team assigned
+          </h1>
+          <p className="mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+            Your account needs to be added to a team before you can use Tempo.
+            Reach out to an admin to finish setup.
           </p>
         </div>
       </div>
