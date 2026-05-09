@@ -3,15 +3,28 @@ import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
+import {
+  canEditTimeEntries,
+  hourlyRateFor,
+  visibleEntriesForUser,
+} from '../../lib/permissions'
+import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function ReportsPage() {
-  const { projects, timeEntries, users } = useWorkspaceStore()
-  const totalSeconds = timeEntries.reduce((sum, entry) => sum + entry.duration, 0)
-  const billableSeconds = timeEntries
+  const { projects, timeEntries, updateTimeEntryDuration, users } = useWorkspaceStore()
+  const viewer = useAuthStore((state) => state.user)
+  const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
+  const canEditDuration = viewer ? canEditTimeEntries(viewer.role) : false
+  const totalSeconds = visibleEntries.reduce((sum, entry) => sum + entry.duration, 0)
+  const billableSeconds = visibleEntries
     .filter((entry) => entry.billable)
     .reduce((sum, entry) => sum + entry.duration, 0)
   const utilization = Math.round((billableSeconds / Math.max(totalSeconds, 1)) * 100)
+  const wageValue = visibleEntries.reduce((sum, entry) => {
+    const user = users.find((item) => item.id === entry.userId)
+    return sum + (entry.duration / 3600) * hourlyRateFor(user)
+  }, 0)
 
   return (
     <div className="space-y-6">
@@ -37,8 +50,8 @@ export function ReportsPage() {
         <StatCard
           detail="Uninvoiced estimate"
           icon={<ReceiptText size={18} />}
-          label="Revenue"
-          value={formatCurrency((billableSeconds / 3600) * 145)}
+          label="Wages"
+          value={formatCurrency(wageValue)}
         />
       </div>
       <Card className="overflow-hidden">
@@ -57,7 +70,7 @@ export function ReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {timeEntries.map((entry) => {
+              {visibleEntries.map((entry) => {
                 const project = projects.find((item) => item.id === entry.projectId)
                 const user = users.find((item) => item.id === entry.userId)
 
@@ -73,7 +86,25 @@ export function ReportsPage() {
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-4 font-mono">{formatHours(entry.duration)}</td>
+                    <td className="px-4 py-4">
+                      {canEditDuration ? (
+                        <input
+                          className="h-9 w-24 rounded-md border border-zinc-200 bg-zinc-50 px-2 font-mono text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          min={0}
+                          onBlur={(event) =>
+                            updateTimeEntryDuration(
+                              entry.id,
+                              Number(event.currentTarget.value),
+                            )
+                          }
+                          step={0.25}
+                          type="number"
+                          defaultValue={(entry.duration / 3600).toFixed(2)}
+                        />
+                      ) : (
+                        <span className="font-mono">{formatHours(entry.duration)}</span>
+                      )}
+                    </td>
                   </tr>
                 )
               })}

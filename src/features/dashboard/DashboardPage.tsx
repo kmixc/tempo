@@ -3,15 +3,24 @@ import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
+import { hourlyRateFor, visibleEntriesForUser } from '../../lib/permissions'
+import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { TimerControl } from '../timer/TimerControl'
 
 export function DashboardPage() {
   const { projects, timeEntries, users } = useWorkspaceStore()
-  const totalSeconds = timeEntries.reduce((sum, entry) => sum + entry.duration, 0)
-  const billableSeconds = timeEntries
-    .filter((entry) => entry.billable)
-    .reduce((sum, entry) => sum + entry.duration, 0)
+  const viewer = useAuthStore((state) => state.user)
+  const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
+  const totalSeconds = visibleEntries.reduce((sum, entry) => sum + entry.duration, 0)
+  const wageValue = visibleEntries.reduce((sum, entry) => {
+    const entryUser = users.find((user) => user.id === entry.userId)
+    return sum + (entry.duration / 3600) * hourlyRateFor(entryUser)
+  }, 0)
+  const averageHourlyRate =
+    users.length > 0
+      ? users.reduce((sum, user) => sum + hourlyRateFor(user), 0) / users.length
+      : 0
 
   return (
     <div className="space-y-6">
@@ -32,10 +41,10 @@ export function DashboardPage() {
           value={formatHours(totalSeconds)}
         />
         <StatCard
-          detail="Estimated at blended team rate"
+          detail="Based on each team member's hourly wage"
           icon={<Banknote size={18} />}
-          label="Billable value"
-          value={formatCurrency((billableSeconds / 3600) * 145)}
+          label="Tracked wages"
+          value={formatCurrency(wageValue)}
         />
         <StatCard
           detail="Projects currently in flight"
@@ -46,8 +55,8 @@ export function DashboardPage() {
         <StatCard
           detail="Members with weekly capacity"
           icon={<Users size={18} />}
-          label="Team"
-          value={String(users.length)}
+          label="Avg wage"
+          value={formatCurrency(averageHourlyRate)}
         />
       </div>
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
@@ -58,8 +67,9 @@ export function DashboardPage() {
             </h2>
           </div>
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {timeEntries.slice(0, 5).map((entry) => {
+            {visibleEntries.slice(0, 5).map((entry) => {
               const project = projects.find((item) => item.id === entry.projectId)
+              const entryUser = users.find((user) => user.id === entry.userId)
 
               return (
                 <div
@@ -70,7 +80,9 @@ export function DashboardPage() {
                     <p className="font-medium text-zinc-950 dark:text-white">
                       {entry.description}
                     </p>
-                    <p className="mt-1 text-sm text-zinc-500">{project?.name}</p>
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {project?.name} · {entryUser?.name ?? 'Unknown user'}
+                    </p>
                   </div>
                   <Badge tone={entry.billable ? 'green' : 'zinc'}>
                     {entry.billable ? 'Billable' : 'Internal'}

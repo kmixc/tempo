@@ -8,6 +8,7 @@ export type User = {
   role: Role
   teamId: string
   capacity: number
+  hourlyRate?: number
 }
 
 export type Team = {

@@ -7,6 +7,7 @@ import {
   Users,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { canAccessAdmin } from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 
 const links = [
@@ -20,7 +21,7 @@ const links = [
 export function Sidebar() {
   const user = useAuthStore((state) => state.user)
   const visibleLinks = links.filter(
-    (link) => link.to !== '/admin' || user?.role === 'Owner' || user?.role === 'Admin',
+    (link) => link.to !== '/admin' || (user && canAccessAdmin(user.role)),
   )
 
   return (

@@ -1,12 +1,17 @@
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
+import { canAccessAdmin, canManageWages, hourlyRateFor } from '../../lib/permissions'
+import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import type { Role } from '../../types'
 
 const roles: Role[] = ['Owner', 'Admin', 'Manager', 'Member']
 
 export function TeamPage() {
-  const { assignRole, teams, users } = useWorkspaceStore()
+  const viewer = useAuthStore((state) => state.user)
+  const { assignRole, teams, updateUserHourlyRate, users } = useWorkspaceStore()
+  const canEditRoles = viewer ? canAccessAdmin(viewer.role) : false
+  const canEditWages = viewer ? canManageWages(viewer.role) : false
 
   return (
     <div className="space-y-6">
@@ -40,7 +45,7 @@ export function TeamPage() {
 
               return (
                 <div
-                  className="grid gap-4 p-4 md:grid-cols-[1fr_auto_170px] md:items-center"
+                  className="grid gap-4 p-4 md:grid-cols-[1fr_auto_150px_170px] md:items-center"
                   key={user.id}
                 >
                   <div className="flex items-center gap-3">
@@ -53,17 +58,43 @@ export function TeamPage() {
                     </div>
                   </div>
                   <Badge tone={team ? 'blue' : 'zinc'}>{team?.name ?? 'No team'}</Badge>
-                  <select
-                    className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
-                    onChange={(event) => assignRole(user.id, event.target.value as Role)}
-                    value={user.role}
-                  >
-                    {roles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block">
+                    <span className="sr-only">Hourly wage</span>
+                    <div className="flex h-10 items-center rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm dark:border-zinc-800 dark:bg-zinc-900">
+                      <span className="text-zinc-500">$</span>
+                      <input
+                        className="ml-1 min-w-0 flex-1 bg-transparent outline-none disabled:text-zinc-500"
+                        disabled={!canEditWages}
+                        min={0}
+                        onBlur={(event) =>
+                          updateUserHourlyRate(
+                            user.id,
+                            Number(event.currentTarget.value),
+                          )
+                        }
+                        step={0.5}
+                        type="number"
+                        defaultValue={hourlyRateFor(user)}
+                      />
+                    </div>
+                  </label>
+                  {canEditRoles ? (
+                    <select
+                      className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                      onChange={(event) =>
+                        assignRole(user.id, event.target.value as Role)
+                      }
+                      value={user.role}
+                    >
+                      {roles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <Badge>{user.role}</Badge>
+                  )}
                 </div>
               )
             })}

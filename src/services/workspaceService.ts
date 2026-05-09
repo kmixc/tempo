@@ -61,6 +61,9 @@ export const workspaceService = {
   async updateUser(user: User) {
     await updateDoc(doc(firestore, 'users', user.id), { ...user })
   },
+  async updateEntry(entry: TimeEntry) {
+    await updateDoc(doc(firestore, 'timeEntries', entry.id), { ...entry })
+  },
   async deleteUser(userId: string) {
     await deleteDoc(doc(firestore, 'users', userId))
   },

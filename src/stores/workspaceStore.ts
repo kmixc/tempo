@@ -17,6 +17,8 @@ type WorkspaceState = {
   removeUserFromTeam: (teamId: string, userId: string) => Promise<void>
   addUserToTeam: (teamId: string, userId: string) => Promise<void>
   assignRole: (userId: string, role: Role) => Promise<void>
+  updateUserHourlyRate: (userId: string, hourlyRate: number) => Promise<void>
+  updateTimeEntryDuration: (entryId: string, hours: number) => Promise<void>
   deleteUserEverywhere: (userId: string) => Promise<void>
 }
 
@@ -132,6 +134,49 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     await workspaceService.updateUser(nextUser)
     set((state) => ({
       users: state.users.map((item) => (item.id === userId ? nextUser : item)),
+    }))
+  },
+  updateUserHourlyRate: async (userId, hourlyRate) => {
+    const user = get().users.find((item) => item.id === userId)
+    if (!user) {
+      return
+    }
+
+    const nextUser = { ...user, hourlyRate: Math.max(0, hourlyRate) }
+    await workspaceService.updateUser(nextUser)
+    set((state) => ({
+      users: state.users.map((item) => (item.id === userId ? nextUser : item)),
+    }))
+  },
+  updateTimeEntryDuration: async (entryId, hours) => {
+    const entry = get().timeEntries.find((item) => item.id === entryId)
+    if (!entry) {
+      return
+    }
+
+    const nextDuration = Math.max(0, Math.round(hours * 3600))
+    const durationDeltaHours = (nextDuration - entry.duration) / 3600
+    const nextEntry = { ...entry, duration: nextDuration }
+    const projects = get().projects.map((project) =>
+      project.id === entry.projectId
+        ? {
+            ...project,
+            trackedHours: Math.max(0, project.trackedHours + durationDeltaHours),
+          }
+        : project,
+    )
+    const updatedProject = projects.find((project) => project.id === entry.projectId)
+
+    await workspaceService.updateEntry(nextEntry)
+    if (updatedProject) {
+      await workspaceService.updateProject(updatedProject)
+    }
+
+    set((state) => ({
+      timeEntries: state.timeEntries.map((item) =>
+        item.id === entryId ? nextEntry : item,
+      ),
+      projects,
     }))
   },
   deleteUserEverywhere: async (userId) => {

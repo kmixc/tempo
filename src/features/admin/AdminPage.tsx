@@ -38,6 +38,7 @@ export function AdminPage() {
   const [userPassword, setUserPassword] = useState('')
   const [userRole, setUserRole] = useState<Role>('Member')
   const [userTeamId, setUserTeamId] = useState('')
+  const [userHourlyRate, setUserHourlyRate] = useState('0')
   const [userError, setUserError] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const trackedSeconds = timeEntries.reduce((sum, entry) => sum + entry.duration, 0)
@@ -84,6 +85,7 @@ export function AdminPage() {
         role: userRole,
         teamId: userTeamId,
         capacity: 35,
+        hourlyRate: Number(userHourlyRate),
       })
 
       if (userTeamId) {
@@ -95,6 +97,7 @@ export function AdminPage() {
       setUserPassword('')
       setUserRole('Member')
       setUserTeamId('')
+      setUserHourlyRate('0')
     } catch (error) {
       setUserError(
         error instanceof Error ? error.message : 'Unable to create this user.',
@@ -152,7 +155,7 @@ export function AdminPage() {
       </Card>
       <Card className="p-4">
         <h2 className="mb-3 font-semibold">Create user account</h2>
-        <form className="grid gap-3 lg:grid-cols-6" onSubmit={handleCreateUser}>
+        <form className="grid gap-3 lg:grid-cols-7" onSubmit={handleCreateUser}>
           <input
             className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white lg:col-span-2"
             onChange={(event) => setUserName(event.target.value)}
@@ -176,6 +179,15 @@ export function AdminPage() {
             required
             type="password"
             value={userPassword}
+          />
+          <input
+            className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+            min={0}
+            onChange={(event) => setUserHourlyRate(event.target.value)}
+            placeholder="Hourly wage"
+            step={0.5}
+            type="number"
+            value={userHourlyRate}
           />
           <select
             className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
