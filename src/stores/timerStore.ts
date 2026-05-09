@@ -14,6 +14,7 @@ type TimerState = {
 
 const initialDraft: DraftTimer = {
   description: '',
+  details: '',
   projectId: '',
   tags: [],
   billable: true,
@@ -47,6 +48,7 @@ export const useTimerStore = create<TimerState>()(
         const entry: TimeEntry = {
           id: crypto.randomUUID(),
           description: runningTimer.description || 'Untitled time entry',
+          details: runningTimer.details,
           projectId: runningTimer.projectId,
           userId,
           tags: runningTimer.tags,

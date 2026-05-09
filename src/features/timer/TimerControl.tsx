@@ -116,6 +116,12 @@ export function TimerControl() {
           </Button>
         )}
       </div>
+      <textarea
+        className="mt-3 min-h-20 w-full rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm outline-none ring-zinc-950 transition placeholder:text-zinc-400 focus:ring-2 dark:border-zinc-800 dark:bg-zinc-900 dark:ring-white"
+        onChange={(event) => setDraft({ details: event.target.value })}
+        placeholder="Add details about what you completed..."
+        value={draft.details}
+      />
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {draft.tags.map((tag) => (
           <button

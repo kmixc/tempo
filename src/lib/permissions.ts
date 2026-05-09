@@ -16,6 +16,18 @@ export function canEditTimeEntries(role: Role) {
   return role === 'Owner' || role === 'Admin'
 }
 
+export function canEditTimeEntry(viewer: User | null, entry: TimeEntry) {
+  if (!viewer) {
+    return false
+  }
+
+  return canEditTimeEntries(viewer.role) || entry.userId === viewer.id
+}
+
+export function canSeeEntryChangeLog(role: Role) {
+  return role === 'Owner' || role === 'Admin' || role === 'Manager'
+}
+
 export function canManageProjectBudgets(role: Role) {
   return role === 'Owner' || role === 'Admin' || role === 'Manager'
 }

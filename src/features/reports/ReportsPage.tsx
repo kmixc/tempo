@@ -6,7 +6,9 @@ import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
 import {
+  canEditTimeEntry,
   canEditTimeEntries,
+  canSeeEntryChangeLog,
   hourlyRateFor,
   visibleEntriesForUser,
 } from '../../lib/permissions'
@@ -25,8 +27,11 @@ export function ReportsPage() {
   const viewer = useAuthStore((state) => state.user)
   const [isEditing, setIsEditing] = useState(false)
   const visibleEntries = visibleEntriesForUser(timeEntries, viewer, teams)
-  const canEditDuration = viewer ? canEditTimeEntries(viewer.role) : false
-  const showEditControls = canEditDuration && isEditing
+  const canEditAnyEntry =
+    viewer !== null &&
+    visibleEntries.some((entry) => canEditTimeEntry(viewer, entry))
+  const showEditControls = canEditAnyEntry && isEditing
+  const showChangeLog = viewer ? canSeeEntryChangeLog(viewer.role) : false
   const canSeeWages = viewer?.role !== 'Member'
   const totalSeconds = visibleEntries.reduce((sum, entry) => sum + entry.duration, 0)
   const billableSeconds = visibleEntries
@@ -71,7 +76,7 @@ export function ReportsPage() {
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-zinc-200 p-4 dark:border-zinc-800">
           <h2 className="font-semibold">Detailed entries</h2>
-          {canEditDuration ? (
+          {canEditAnyEntry ? (
             <Button
               className="h-9 px-3"
               onClick={() => setIsEditing((current) => !current)}
@@ -86,10 +91,14 @@ export function ReportsPage() {
             <thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
               <tr>
                 <th className="px-4 py-3 font-medium">Entry</th>
+                <th className="px-4 py-3 font-medium">Details</th>
                 <th className="px-4 py-3 font-medium">Project</th>
                 <th className="px-4 py-3 font-medium">User</th>
                 <th className="px-4 py-3 font-medium">Tags</th>
                 <th className="px-4 py-3 font-medium">Hours</th>
+                {showChangeLog ? (
+                  <th className="px-4 py-3 font-medium">Changes</th>
+                ) : null}
                 {showEditControls ? (
                   <th className="px-4 py-3 font-medium">Actions</th>
                 ) : null}
@@ -99,17 +108,22 @@ export function ReportsPage() {
               {visibleEntries.map((entry) => {
                 const project = projects.find((item) => item.id === entry.projectId)
                 const user = users.find((item) => item.id === entry.userId)
+                const canEditRow = showEditControls && canEditTimeEntry(viewer, entry)
 
                 return (
                   <tr key={entry.id}>
                     <td className="px-4 py-4 font-medium">
-                      {showEditControls ? (
+                      {canEditRow ? (
                         <input
                           className="h-9 w-56 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onBlur={(event) =>
-                            updateTimeEntry(entry.id, {
-                              description: event.currentTarget.value,
-                            })
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                description: event.currentTarget.value,
+                              },
+                              viewer,
+                            )
                           }
                           defaultValue={entry.description}
                         />
@@ -117,14 +131,39 @@ export function ReportsPage() {
                         entry.description
                       )}
                     </td>
+                    <td className="px-4 py-4">
+                      {canEditRow ? (
+                        <textarea
+                          className="min-h-16 w-64 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                          onBlur={(event) =>
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                details: event.currentTarget.value,
+                              },
+                              viewer,
+                            )
+                          }
+                          defaultValue={entry.details ?? ''}
+                        />
+                      ) : (
+                        <p className="max-w-xs whitespace-pre-wrap text-zinc-600 dark:text-zinc-300">
+                          {entry.details || 'No details'}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-4 text-zinc-500">
-                      {showEditControls ? (
+                      {canEditRow ? (
                         <select
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onChange={(event) =>
-                            updateTimeEntry(entry.id, {
-                              projectId: event.currentTarget.value,
-                            })
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                projectId: event.currentTarget.value,
+                              },
+                              viewer,
+                            )
                           }
                           value={entry.projectId}
                         >
@@ -139,13 +178,17 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4 text-zinc-500">
-                      {showEditControls ? (
+                      {canEditRow && viewer && canEditTimeEntries(viewer.role) ? (
                         <select
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onChange={(event) =>
-                            updateTimeEntry(entry.id, {
-                              userId: event.currentTarget.value,
-                            })
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                userId: event.currentTarget.value,
+                              },
+                              viewer,
+                            )
                           }
                           value={entry.userId}
                         >
@@ -160,16 +203,20 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      {showEditControls ? (
+                      {canEditRow ? (
                         <input
                           className="h-9 w-44 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           onBlur={(event) =>
-                            updateTimeEntry(entry.id, {
-                              tags: event.currentTarget.value
-                                .split(',')
-                                .map((tag) => tag.trim())
-                                .filter(Boolean),
-                            })
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                tags: event.currentTarget.value
+                                  .split(',')
+                                  .map((tag) => tag.trim())
+                                  .filter(Boolean),
+                              },
+                              viewer,
+                            )
                           }
                           defaultValue={entry.tags.join(', ')}
                         />
@@ -182,14 +229,18 @@ export function ReportsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      {showEditControls ? (
+                      {canEditRow ? (
                         <input
                           className="h-9 w-24 rounded-md border border-zinc-200 bg-zinc-50 px-2 font-mono text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
                           min={0}
                           onBlur={(event) =>
-                            updateTimeEntry(entry.id, {
-                              hours: Number(event.currentTarget.value),
-                            })
+                            updateTimeEntry(
+                              entry.id,
+                              {
+                                hours: Number(event.currentTarget.value),
+                              },
+                              viewer,
+                            )
                           }
                           step={0.25}
                           type="number"
@@ -199,16 +250,33 @@ export function ReportsPage() {
                         <span className="font-mono">{formatHours(entry.duration)}</span>
                       )}
                     </td>
+                    {showChangeLog ? (
+                      <td className="px-4 py-4 text-xs text-zinc-500">
+                        {entry.changeLog?.length ? (
+                          <div className="space-y-1">
+                            {entry.changeLog.slice(-3).map((change) => (
+                              <p key={change.id}>
+                                {change.changedByName}: {change.fields.join(', ')}
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          'No changes'
+                        )}
+                      </td>
+                    ) : null}
                     {showEditControls ? (
                       <td className="px-4 py-4">
-                        <Button
-                          className="h-9 px-3"
-                          icon={<Trash2 size={14} />}
-                          onClick={() => deleteTimeEntry(entry.id)}
-                          variant="danger"
-                        >
-                          Delete
-                        </Button>
+                        {canEditRow && viewer && canEditTimeEntries(viewer.role) ? (
+                          <Button
+                            className="h-9 px-3"
+                            icon={<Trash2 size={14} />}
+                            onClick={() => deleteTimeEntry(entry.id)}
+                            variant="danger"
+                          >
+                            Delete
+                          </Button>
+                        ) : null}
                       </td>
                     ) : null}
                   </tr>

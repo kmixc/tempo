@@ -27,6 +27,7 @@ type WorkspaceState = {
   updateTimeEntry: (
     entryId: string,
     values: Partial<Omit<TimeEntry, 'id' | 'start' | 'end'>> & { hours?: number },
+    actor?: User | null,
   ) => Promise<void>
   updateTimeEntryDuration: (entryId: string, hours: number) => Promise<void>
   deleteTimeEntry: (entryId: string) => Promise<void>
@@ -194,7 +195,7 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
       ),
     }))
   },
-  updateTimeEntry: async (entryId, values) => {
+  updateTimeEntry: async (entryId, values, actor) => {
     const entry = get().timeEntries.find((item) => item.id === entryId)
     if (!entry) {
       return
@@ -206,10 +207,42 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
         : Math.max(0, Math.round(values.hours * 3600))
     const durationDeltaHours = (nextDuration - entry.duration) / 3600
     const projectChanged = values.projectId && values.projectId !== entry.projectId
+    const changedFields = [
+      values.description !== undefined && values.description !== entry.description
+        ? 'description'
+        : '',
+      values.details !== undefined && values.details !== entry.details ? 'details' : '',
+      values.projectId !== undefined && values.projectId !== entry.projectId
+        ? 'project'
+        : '',
+      values.userId !== undefined && values.userId !== entry.userId ? 'user' : '',
+      values.tags !== undefined &&
+      JSON.stringify(values.tags) !== JSON.stringify(entry.tags)
+        ? 'tags'
+        : '',
+      values.billable !== undefined && values.billable !== entry.billable
+        ? 'billable'
+        : '',
+      nextDuration !== entry.duration ? 'hours' : '',
+    ].filter(Boolean)
+
     const nextEntry = {
       ...entry,
       ...values,
       duration: nextDuration,
+      changeLog:
+        changedFields.length > 0
+          ? [
+              ...(entry.changeLog ?? []),
+              {
+                id: crypto.randomUUID(),
+                changedAt: new Date().toISOString(),
+                changedBy: actor?.id ?? 'system',
+                changedByName: actor?.name ?? 'System',
+                fields: changedFields,
+              },
+            ]
+          : entry.changeLog,
     }
     delete nextEntry.hours
     const projects = get().projects.map((project) =>

@@ -34,6 +34,7 @@ export type Project = {
 export type TimeEntry = {
   id: string
   description: string
+  details?: string
   projectId: string
   userId: string
   tags: string[]
@@ -41,10 +42,20 @@ export type TimeEntry = {
   start: string
   end: string
   duration: number
+  changeLog?: TimeEntryChange[]
+}
+
+export type TimeEntryChange = {
+  id: string
+  changedAt: string
+  changedBy: string
+  changedByName: string
+  fields: string[]
 }
 
 export type RunningTimer = {
   description: string
+  details: string
   projectId: string
   tags: string[]
   billable: boolean
