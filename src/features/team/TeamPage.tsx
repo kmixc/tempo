@@ -23,6 +23,11 @@ export function TeamPage() {
       ? teams
       : teams.filter((team) => team.id === teamForUser(viewer, teams)?.id)
   const visibleUsers = visibleUsersForUser(users, teams, viewer)
+  const assignedUsers = visibleUsers.filter((user) =>
+    visibleTeams.some(
+      (team) => team.id === user.teamId || team.userIds.includes(user.id),
+    ),
+  )
   const memberGrid = canEditWages
     ? 'md:grid-cols-[1fr_auto_150px_170px]'
     : 'md:grid-cols-[1fr_auto_170px]'
@@ -52,7 +57,12 @@ export function TeamPage() {
             <h2 className="font-semibold">Members</h2>
           </div>
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {visibleUsers.map((user) => {
+            {assignedUsers.length === 0 ? (
+              <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
+                No assigned team members.
+              </p>
+            ) : null}
+            {assignedUsers.map((user) => {
               const team = teams.find(
                 (item) => item.id === user.teamId || item.userIds.includes(user.id),
               )
