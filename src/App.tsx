@@ -26,7 +26,7 @@ function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
-  if (user.role !== 'Owner' && user.role !== 'Admin') {
+  if (user.role !== 'Owner' && user.role !== 'Admin' && user.role !== 'Manager') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-6 text-center dark:bg-zinc-950">
         <div>
@@ -34,8 +34,8 @@ function ProtectedRoute() {
             Access restricted
           </h1>
           <p className="mt-2 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
-            This workspace is admin-only. Ask the workspace owner to update your
-            role if you need access.
+            This workspace is limited to managers and admins. Ask the workspace
+            owner to update your role if you need access.
           </p>
         </div>
       </div>
@@ -43,6 +43,16 @@ function ProtectedRoute() {
   }
 
   return <AppLayout />
+}
+
+function AdminRoute() {
+  const user = useAuthStore((state) => state.user)
+
+  if (user?.role !== 'Owner' && user?.role !== 'Admin') {
+    return <Navigate to="/" replace />
+  }
+
+  return <AdminPage />
 }
 
 export default function App() {
@@ -67,7 +77,7 @@ export default function App() {
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/team" element={<TeamPage />} />
         <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<AdminRoute />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

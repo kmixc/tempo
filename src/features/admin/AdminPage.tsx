@@ -1,4 +1,11 @@
-import { Activity, ShieldCheck, UserMinus, UserPlus, Users } from 'lucide-react'
+import {
+  Activity,
+  ShieldCheck,
+  Trash2,
+  UserMinus,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Button } from '../../components/ui/Button'
@@ -17,6 +24,7 @@ export function AdminPage() {
     addTeam,
     addUserToTeam,
     assignRole,
+    deleteUserEverywhere,
     projects,
     removeUserFromTeam,
     teams,
@@ -31,6 +39,7 @@ export function AdminPage() {
   const [userRole, setUserRole] = useState<Role>('Member')
   const [userTeamId, setUserTeamId] = useState('')
   const [userError, setUserError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const trackedSeconds = timeEntries.reduce((sum, entry) => sum + entry.duration, 0)
 
   async function handleCreateTeam(event: FormEvent<HTMLFormElement>) {
@@ -41,6 +50,27 @@ export function AdminPage() {
     })
     setTeamName('')
     setTeamDescription('')
+  }
+
+  async function handleDeleteUser(userId: string) {
+    setDeleteError(null)
+
+    const user = users.find((item) => item.id === userId)
+    const confirmed = window.confirm(
+      `Delete ${user?.name ?? 'this user'} from Firestore profiles, teams, projects, and time entries?`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await deleteUserEverywhere(userId)
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete this user.',
+      )
+    }
   }
 
   async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
@@ -177,6 +207,63 @@ export function AdminPage() {
             <p className="text-sm text-red-600 lg:col-span-6">{userError}</p>
           ) : null}
         </form>
+      </Card>
+      <Card className="overflow-hidden">
+        <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
+          <h2 className="font-semibold">All users</h2>
+          {deleteError ? (
+            <p className="mt-2 text-sm text-red-600">{deleteError}</p>
+          ) : null}
+        </div>
+        <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {users.length === 0 ? (
+            <p className="p-4 text-sm text-zinc-500 dark:text-zinc-400">
+              No users have been created yet.
+            </p>
+          ) : null}
+          {users.map((user) => {
+            const team = teams.find(
+              (item) => item.id === user.teamId || item.userIds.includes(user.id),
+            )
+
+            return (
+              <div
+                className="grid gap-3 p-4 md:grid-cols-[1fr_150px_150px_auto] md:items-center"
+                key={user.id}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-950 text-xs font-semibold text-white dark:bg-white dark:text-zinc-950">
+                    {user.avatar}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{user.name}</p>
+                    <p className="text-xs text-zinc-500">{user.email}</p>
+                  </div>
+                </div>
+                <span className="text-sm text-zinc-500">{team?.name ?? 'No team'}</span>
+                <select
+                  className="h-9 rounded-md border border-zinc-200 bg-zinc-50 px-2 text-sm outline-none dark:border-zinc-800 dark:bg-zinc-900"
+                  onChange={(event) => assignRole(user.id, event.target.value as Role)}
+                  value={user.role}
+                >
+                  {roles.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  className="h-9 px-3"
+                  icon={<Trash2 size={14} />}
+                  onClick={() => handleDeleteUser(user.id)}
+                  variant="danger"
+                >
+                  Delete
+                </Button>
+              </div>
+            )
+          })}
+        </div>
       </Card>
       <div className="grid gap-4 lg:grid-cols-2">
         {teams.length === 0 ? (

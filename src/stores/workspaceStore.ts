@@ -17,6 +17,7 @@ type WorkspaceState = {
   removeUserFromTeam: (teamId: string, userId: string) => Promise<void>
   addUserToTeam: (teamId: string, userId: string) => Promise<void>
   assignRole: (userId: string, role: Role) => Promise<void>
+  deleteUserEverywhere: (userId: string) => Promise<void>
 }
 
 export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
@@ -131,6 +132,28 @@ export const useWorkspaceStore = create<WorkspaceState>()((set, get) => ({
     await workspaceService.updateUser(nextUser)
     set((state) => ({
       users: state.users.map((item) => (item.id === userId ? nextUser : item)),
+    }))
+  },
+  deleteUserEverywhere: async (userId) => {
+    const { projects, teams, timeEntries } = get()
+    await workspaceService.deleteUserEverywhere({
+      userId,
+      projects,
+      teams,
+      timeEntries,
+    })
+
+    set((state) => ({
+      users: state.users.filter((user) => user.id !== userId),
+      teams: state.teams.map((team) => ({
+        ...team,
+        userIds: team.userIds.filter((id) => id !== userId),
+      })),
+      projects: state.projects.map((project) => ({
+        ...project,
+        members: project.members.filter((id) => id !== userId),
+      })),
+      timeEntries: state.timeEntries.filter((entry) => entry.userId !== userId),
     }))
   },
 }))

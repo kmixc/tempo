@@ -9,6 +9,7 @@ import {
   type QuerySnapshot,
   setDoc,
   updateDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { firestore } from '../lib/firebase'
 import type { Project, Team, TimeEntry, User } from '../types'
@@ -62,6 +63,40 @@ export const workspaceService = {
   },
   async deleteUser(userId: string) {
     await deleteDoc(doc(firestore, 'users', userId))
+  },
+  async deleteUserEverywhere(params: {
+    userId: string
+    teams: Team[]
+    projects: Project[]
+    timeEntries: TimeEntry[]
+  }) {
+    const batch = writeBatch(firestore)
+
+    batch.delete(doc(firestore, 'users', params.userId))
+
+    params.teams.forEach((team) => {
+      if (team.userIds.includes(params.userId)) {
+        batch.update(doc(firestore, 'teams', team.id), {
+          userIds: team.userIds.filter((id) => id !== params.userId),
+        })
+      }
+    })
+
+    params.projects.forEach((project) => {
+      if (project.members.includes(params.userId)) {
+        batch.update(doc(firestore, 'projects', project.id), {
+          members: project.members.filter((id) => id !== params.userId),
+        })
+      }
+    })
+
+    params.timeEntries.forEach((entry) => {
+      if (entry.userId === params.userId) {
+        batch.delete(doc(firestore, 'timeEntries', entry.id))
+      }
+    })
+
+    await batch.commit()
   },
   async createEntry(entry: TimeEntry) {
     await setDoc(doc(firestore, 'timeEntries', entry.id), entry)

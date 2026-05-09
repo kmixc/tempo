@@ -7,6 +7,7 @@ import {
   Users,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useAuthStore } from '../../stores/authStore'
 
 const links = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -17,6 +18,11 @@ const links = [
 ]
 
 export function Sidebar() {
+  const user = useAuthStore((state) => state.user)
+  const visibleLinks = links.filter(
+    (link) => link.to !== '/admin' || user?.role === 'Owner' || user?.role === 'Admin',
+  )
+
   return (
     <aside className="hidden w-64 shrink-0 border-r border-zinc-200 bg-white/80 px-3 py-4 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80 lg:block">
       <div className="mb-6 flex items-center gap-3 px-3">
@@ -29,7 +35,7 @@ export function Sidebar() {
         </div>
       </div>
       <nav className="space-y-1">
-        {links.map((link) => {
+        {visibleLinks.map((link) => {
           const Icon = link.icon
 
           return (
