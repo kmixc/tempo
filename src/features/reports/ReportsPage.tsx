@@ -1,10 +1,11 @@
-import { BarChart3, CalendarDays, ReceiptText, Trash2 } from 'lucide-react'
+import { BarChart3, CalendarDays, ChevronDown, ReceiptText, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
+import type { TimeEntryChange } from '../../types'
 import {
   canEditTimeEntry,
   canEditTimeEntries,
@@ -14,6 +15,87 @@ import {
 } from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
+
+const changeFieldLabels = {
+  description: 'Description',
+  details: 'Details',
+  project: 'Project',
+  user: 'User',
+  tags: 'Tags',
+  billable: 'Billing',
+  hours: 'Hours',
+} as const
+
+function formatChangeTimestamp(changedAt: string) {
+  return new Date(changedAt).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+function renderChangeSummary(change: TimeEntryChange) {
+  if (change.changes?.length) {
+    return (
+      <div className="space-y-2">
+        {change.changes.map((fieldChange) => (
+          <div
+            key={`${change.id}-${fieldChange.field}`}
+            className="rounded-md border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <p className="font-medium text-zinc-700 dark:text-zinc-100">
+              {changeFieldLabels[fieldChange.field]}
+            </p>
+            <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium">Before:</span> {fieldChange.from}
+            </p>
+            <p className="text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium">After:</span> {fieldChange.to}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (change.before && change.after) {
+    const beforeValues = change.before
+    const afterValues = change.after
+    const snapshotFields = Object.keys(afterValues) as Array<keyof typeof changeFieldLabels>
+
+    return (
+      <div className="space-y-2">
+        {snapshotFields.map((field) => (
+          <div
+            key={`${change.id}-${field}`}
+            className="rounded-md border border-zinc-200 bg-zinc-50 p-2 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <p className="font-medium text-zinc-700 dark:text-zinc-100">
+              {changeFieldLabels[field]}
+            </p>
+            <p className="mt-1 text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium">Before:</span> {beforeValues[field] ?? 'Unavailable'}
+            </p>
+            <p className="text-zinc-500 dark:text-zinc-400">
+              <span className="font-medium">After:</span> {afterValues[field] ?? 'Unavailable'}
+            </p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (change.fields?.length) {
+    return (
+      <p className="text-zinc-500 dark:text-zinc-400">
+        {change.fields.join(', ')}
+        {' '}
+        <span className="italic">Legacy change record without before/after values.</span>
+      </p>
+    )
+  }
+
+  return <p className="text-zinc-500 dark:text-zinc-400">Updated entry</p>
+}
 
 export function ReportsPage() {
   const {
@@ -251,13 +333,37 @@ export function ReportsPage() {
                       )}
                     </td>
                     {showChangeLog ? (
-                      <td className="px-4 py-4 text-xs text-zinc-500">
+                      <td className="px-4 py-4 align-top text-xs text-zinc-500">
                         {entry.changeLog?.length ? (
                           <div className="space-y-1">
-                            {entry.changeLog.slice(-3).map((change) => (
-                              <p key={change.id}>
-                                {change.changedByName}: {change.fields.join(', ')}
-                              </p>
+                            {[...entry.changeLog].slice(-3).reverse().map((change) => (
+                              <details
+                                key={change.id}
+                                className="group rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                              >
+                                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2">
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium text-zinc-700 dark:text-zinc-200">
+                                      {change.changedByName}
+                                    </p>
+                                    <p className="text-zinc-500 dark:text-zinc-400">
+                                      {change.changes?.length ?? change.fields?.length ?? 1} change
+                                      {(change.changes?.length ?? change.fields?.length ?? 1) === 1
+                                        ? ''
+                                        : 's'}
+                                      {' '}
+                                      · {formatChangeTimestamp(change.changedAt)}
+                                    </p>
+                                  </div>
+                                  <ChevronDown
+                                    className="shrink-0 transition group-open:rotate-180"
+                                    size={14}
+                                  />
+                                </summary>
+                                <div className="border-t border-zinc-200 px-3 py-3 dark:border-zinc-800">
+                                  {renderChangeSummary(change)}
+                                </div>
+                              </details>
                             ))}
                           </div>
                         ) : (

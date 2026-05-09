@@ -41,10 +41,12 @@ textarea {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45);
     transform: scale(1);
   }
+
   45% {
     box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.16);
     transform: scale(1.01);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
     transform: scale(1);
@@ -56,10 +58,12 @@ textarea {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
     transform: scale(1);
   }
+
   45% {
     box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.16);
     transform: scale(0.995);
   }
+
   100% {
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
     transform: scale(1);
@@ -68,6 +72,10 @@ textarea {
 
 .timer-flash-start {
   animation: timer-start-flash 900ms ease-out;
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+.timer-running {
   border-color: rgba(16, 185, 129, 0.6);
 }
 

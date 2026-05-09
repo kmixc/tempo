@@ -9,6 +9,7 @@ export type User = {
   teamId: string
   capacity: number
   hourlyRate?: number
+  mustChangePassword?: boolean
 }
 
 export type Team = {
@@ -45,12 +46,25 @@ export type TimeEntry = {
   changeLog?: TimeEntryChange[]
 }
 
+export type TimeEntryFieldChange = {
+  field: 'description' | 'details' | 'project' | 'user' | 'tags' | 'billable' | 'hours'
+  from: string
+  to: string
+}
+
+export type TimeEntryChangeSnapshot = Partial<
+  Record<TimeEntryFieldChange['field'], string>
+>
+
 export type TimeEntryChange = {
   id: string
   changedAt: string
   changedBy: string
   changedByName: string
-  fields: string[]
+  fields?: string[]
+  changes?: TimeEntryFieldChange[]
+  before?: TimeEntryChangeSnapshot
+  after?: TimeEntryChangeSnapshot
 }
 
 export type RunningTimer = {

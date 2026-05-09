@@ -6,7 +6,9 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import {
+  budgetProgressForProject,
   canManageProjectBudgets,
+  visibleEntriesForUser,
   visibleProjectsForUser,
   visibleUsersForUser,
 } from '../../lib/permissions'
@@ -14,10 +16,11 @@ import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function ProjectsPage() {
-  const { addProject, projects, teams, updateProjectBudget, users } = useWorkspaceStore()
+  const { addProject, projects, teams, timeEntries, updateProjectBudget, users } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
   const canEditBudgets = viewer ? canManageProjectBudgets(viewer.role) : false
   const visibleProjects = visibleProjectsForUser(projects, teams, viewer)
+  const visibleEntries = visibleEntriesForUser(timeEntries, viewer, teams)
   const visibleUsers = visibleUsersForUser(users, teams, viewer)
   const [name, setName] = useState('')
   const [client, setClient] = useState('')
@@ -106,12 +109,7 @@ export function ProjectsPage() {
       ) : null}
       <div className="grid gap-4 lg:grid-cols-3">
         {visibleProjects.map((project) => {
-          const progress = Math.min(
-            100,
-            project.budgetHours > 0
-              ? Math.round((project.trackedHours / project.budgetHours) * 100)
-              : 0,
-          )
+          const progress = budgetProgressForProject(project, visibleEntries, users)
 
           return (
             <Card className="p-4" key={project.id}>

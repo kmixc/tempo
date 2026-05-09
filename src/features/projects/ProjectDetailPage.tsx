@@ -4,6 +4,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { formatHours } from '../../lib/format'
 import {
+  budgetProgressForProject,
   canManageProjectBudgets,
   visibleEntriesForUser,
   visibleProjectsForUser,
@@ -37,10 +38,7 @@ export function ProjectDetailPage() {
   const entries = visibleEntriesForUser(timeEntries, viewer, teams).filter(
     (entry) => entry.projectId === project.id,
   )
-  const progress =
-    project.budgetHours > 0
-      ? Math.min(100, Math.round((project.trackedHours / project.budgetHours) * 100))
-      : 0
+  const progress = budgetProgressForProject(project, entries, users)
 
   return (
     <div className="space-y-6">

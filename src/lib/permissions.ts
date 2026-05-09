@@ -36,6 +36,36 @@ export function hourlyRateFor(user: User | undefined) {
   return user?.hourlyRate ?? 0
 }
 
+export function trackedCostForProject(
+  projectId: string,
+  entries: TimeEntry[],
+  users: User[],
+) {
+  return entries.reduce((sum, entry) => {
+    if (entry.projectId !== projectId) {
+      return sum
+    }
+
+    const entryUser = users.find((user) => user.id === entry.userId)
+    return sum + (entry.duration / 3600) * hourlyRateFor(entryUser)
+  }, 0)
+}
+
+export function budgetProgressForProject(
+  project: Project,
+  entries: TimeEntry[],
+  users: User[],
+) {
+  if (project.budgetHours <= 0) {
+    return 0
+  }
+
+  return Math.min(
+    100,
+    Math.round((trackedCostForProject(project.id, entries, users) / project.budgetHours) * 100),
+  )
+}
+
 export function teamForUser(user: User | null | undefined, teams: Team[]) {
   if (!user) {
     return undefined

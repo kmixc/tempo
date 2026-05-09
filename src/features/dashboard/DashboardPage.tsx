@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
 import {
+  budgetProgressForProject,
   hourlyRateFor,
   visibleEntriesForUser,
   visibleProjectsForUser,
@@ -28,7 +29,7 @@ export function DashboardPage() {
   const averageHourlyRate =
     visibleUsers.length > 0
       ? visibleUsers.reduce((sum, user) => sum + hourlyRateFor(user), 0) /
-        visibleUsers.length
+      visibleUsers.length
       : 0
 
   return (
@@ -123,10 +124,7 @@ export function DashboardPage() {
           </h2>
           <div className="mt-4 space-y-4">
             {visibleProjects.map((project) => {
-              const progress = Math.min(
-                100,
-                Math.round((project.trackedHours / project.budgetHours) * 100),
-              )
+              const progress = budgetProgressForProject(project, visibleEntries, users)
 
               return (
                 <div key={project.id}>

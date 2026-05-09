@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { AdminPage } from './features/admin/AdminPage'
+import { ForcePasswordChangePage } from './features/auth/ForcePasswordChangePage'
 import { LoginPage } from './features/auth/LoginPage'
 import { DashboardPage } from './features/dashboard/DashboardPage'
 import { ProjectDetailPage } from './features/projects/ProjectDetailPage'
@@ -43,6 +44,10 @@ function ProtectedRoute() {
         </div>
       </div>
     )
+  }
+
+  if (user.mustChangePassword) {
+    return <ForcePasswordChangePage />
   }
 
   if (user.role === 'Member' && !hasLoadedWorkspace) {

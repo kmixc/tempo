@@ -67,13 +67,12 @@ export function TimerControl() {
 
   return (
     <Card
-      className={`p-4 transition ${
-        timerFlash === 'start'
+      className={`p-4 transition ${current ? 'timer-running ' : ''}${timerFlash === 'start'
           ? 'timer-flash-start'
           : timerFlash === 'stop'
             ? 'timer-flash-stop'
             : ''
-      }`}
+        }`}
     >
       <div className="grid gap-4 xl:grid-cols-[1fr_180px_auto] xl:items-center">
         <div className="grid gap-3 md:grid-cols-[1.4fr_220px]">

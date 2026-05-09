@@ -1,4 +1,4 @@
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -9,6 +9,7 @@ import { AuthShell } from './AuthShell'
 export function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const login = useAuthStore((state) => state.login)
   const authError = useAuthStore((state) => state.error)
@@ -45,14 +46,24 @@ export function LoginPage() {
         </label>
         <label className="block">
           <span className="text-sm font-medium">Password</span>
-          <input
-            className="mt-2 h-11 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm outline-none ring-zinc-950 transition focus:ring-2 dark:border-zinc-800 dark:bg-zinc-900 dark:ring-white"
-            minLength={6}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
+          <div className="mt-2 flex items-center rounded-md border border-zinc-200 bg-white ring-zinc-950 transition focus-within:ring-2 dark:border-zinc-800 dark:bg-zinc-900 dark:ring-white">
+            <input
+              className="h-11 w-full bg-transparent px-3 text-sm outline-none"
+              minLength={6}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+            />
+            <button
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="px-3 text-zinc-500 hover:text-zinc-950 dark:hover:text-white"
+              onClick={() => setShowPassword((value) => !value)}
+              type="button"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </label>
         {formError || authError ? (
           <p className="text-sm text-red-600">{authError ?? formError}</p>
@@ -67,7 +78,7 @@ export function LoginPage() {
         </Button>
       </form>
       <p className="mt-6 text-center text-sm text-zinc-500">
-        Accounts are created by the workspace admin.
+        Accounts are created by the workspace admin. Temporary passwords must be changed after first sign-in.
       </p>
     </AuthShell>
   )
