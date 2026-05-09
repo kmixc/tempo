@@ -1,6 +1,12 @@
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
-import { canAccessAdmin, canManageWages, hourlyRateFor } from '../../lib/permissions'
+import {
+  canAccessAdmin,
+  canManageWages,
+  hourlyRateFor,
+  teamForUser,
+  visibleUsersForUser,
+} from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import type { Role } from '../../types'
@@ -12,6 +18,11 @@ export function TeamPage() {
   const { assignRole, teams, updateUserHourlyRate, users } = useWorkspaceStore()
   const canEditRoles = viewer ? canAccessAdmin(viewer.role) : false
   const canEditWages = viewer ? canManageWages(viewer.role) : false
+  const visibleTeams =
+    viewer && canAccessAdmin(viewer.role)
+      ? teams
+      : teams.filter((team) => team.id === teamForUser(viewer, teams)?.id)
+  const visibleUsers = visibleUsersForUser(users, teams, viewer)
   const memberGrid = canEditWages
     ? 'md:grid-cols-[1fr_auto_150px_170px]'
     : 'md:grid-cols-[1fr_auto_170px]'
@@ -26,7 +37,7 @@ export function TeamPage() {
       </div>
       <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
         <div className="space-y-4">
-          {teams.map((team) => (
+          {visibleTeams.map((team) => (
             <Card className="p-4" key={team.id}>
               <h2 className="font-semibold">{team.name}</h2>
               <p className="mt-1 text-sm text-zinc-500">{team.description}</p>
@@ -41,7 +52,7 @@ export function TeamPage() {
             <h2 className="font-semibold">Members</h2>
           </div>
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {users.map((user) => {
+            {visibleUsers.map((user) => {
               const team = teams.find(
                 (item) => item.id === user.teamId || item.userIds.includes(user.id),
               )

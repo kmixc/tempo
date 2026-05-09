@@ -3,23 +3,32 @@ import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
 import { formatCurrency, formatHours } from '../../lib/format'
-import { hourlyRateFor, visibleEntriesForUser } from '../../lib/permissions'
+import {
+  hourlyRateFor,
+  visibleEntriesForUser,
+  visibleProjectsForUser,
+  visibleUsersForUser,
+} from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import { TimerControl } from '../timer/TimerControl'
 
 export function DashboardPage() {
-  const { projects, timeEntries, users } = useWorkspaceStore()
+  const { projects, teams, timeEntries, users } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
-  const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
+  const visibleEntries = visibleEntriesForUser(timeEntries, viewer, teams)
+  const visibleUsers = visibleUsersForUser(users, teams, viewer)
+  const visibleProjects = visibleProjectsForUser(projects, teams, viewer)
+  const canSeeWages = viewer?.role !== 'Member'
   const totalSeconds = visibleEntries.reduce((sum, entry) => sum + entry.duration, 0)
   const wageValue = visibleEntries.reduce((sum, entry) => {
     const entryUser = users.find((user) => user.id === entry.userId)
     return sum + (entry.duration / 3600) * hourlyRateFor(entryUser)
   }, 0)
   const averageHourlyRate =
-    users.length > 0
-      ? users.reduce((sum, user) => sum + hourlyRateFor(user), 0) / users.length
+    visibleUsers.length > 0
+      ? visibleUsers.reduce((sum, user) => sum + hourlyRateFor(user), 0) /
+        visibleUsers.length
       : 0
 
   return (
@@ -40,24 +49,37 @@ export function DashboardPage() {
           label="Tracked"
           value={formatHours(totalSeconds)}
         />
-        <StatCard
-          detail="Based on each team member's hourly wage"
-          icon={<Banknote size={18} />}
-          label="Tracked wages"
-          value={formatCurrency(wageValue)}
-        />
+        {canSeeWages ? (
+          <StatCard
+            detail="Based on visible team hourly wages"
+            icon={<Banknote size={18} />}
+            label="Tracked wages"
+            value={formatCurrency(wageValue)}
+          />
+        ) : null}
         <StatCard
           detail="Projects currently in flight"
           icon={<Target size={18} />}
           label="Active projects"
-          value={String(projects.filter((project) => project.status === 'Active').length)}
+          value={String(
+            visibleProjects.filter((project) => project.status === 'Active').length,
+          )}
         />
-        <StatCard
-          detail="Members with weekly capacity"
-          icon={<Users size={18} />}
-          label="Avg wage"
-          value={formatCurrency(averageHourlyRate)}
-        />
+        {canSeeWages ? (
+          <StatCard
+            detail="Visible team members"
+            icon={<Users size={18} />}
+            label="Avg wage"
+            value={formatCurrency(averageHourlyRate)}
+          />
+        ) : (
+          <StatCard
+            detail="People in your team scope"
+            icon={<Users size={18} />}
+            label="Team"
+            value={String(visibleUsers.length)}
+          />
+        )}
       </div>
       <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <Card className="overflow-hidden">
@@ -81,7 +103,7 @@ export function DashboardPage() {
                       {entry.description}
                     </p>
                     <p className="mt-1 text-sm text-zinc-500">
-                      {project?.name} · {entryUser?.name ?? 'Unknown user'}
+                      {project?.name} / {entryUser?.name ?? 'Unknown user'}
                     </p>
                   </div>
                   <Badge tone={entry.billable ? 'green' : 'zinc'}>
@@ -100,7 +122,7 @@ export function DashboardPage() {
             Project health
           </h2>
           <div className="mt-4 space-y-4">
-            {projects.map((project) => {
+            {visibleProjects.map((project) => {
               const progress = Math.min(
                 100,
                 Math.round((project.trackedHours / project.budgetHours) * 100),

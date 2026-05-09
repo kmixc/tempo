@@ -5,14 +5,20 @@ import { Link } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
-import { canManageProjectBudgets } from '../../lib/permissions'
+import {
+  canManageProjectBudgets,
+  visibleProjectsForUser,
+  visibleUsersForUser,
+} from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 
 export function ProjectsPage() {
-  const { addProject, projects, updateProjectBudget, users } = useWorkspaceStore()
+  const { addProject, projects, teams, updateProjectBudget, users } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
   const canEditBudgets = viewer ? canManageProjectBudgets(viewer.role) : false
+  const visibleProjects = visibleProjectsForUser(projects, teams, viewer)
+  const visibleUsers = visibleUsersForUser(users, teams, viewer)
   const [name, setName] = useState('')
   const [client, setClient] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
@@ -49,58 +55,62 @@ export function ProjectsPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Projects</h1>
         </div>
       </div>
-      <Card className="p-4">
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <input
-              className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Project name"
-              required
-              value={name}
-            />
-            <input
-              className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
-              onChange={(event) => setClient(event.target.value)}
-              placeholder="Client"
-              required
-              value={client}
-            />
-            <Button icon={<Plus size={16} />} type="submit">
-              Add project
-            </Button>
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-medium">Assign people</p>
-            <div className="flex flex-wrap gap-2">
-              {users.length === 0 ? (
-                <p className="text-sm text-zinc-500">
-                  Create users in Admin before assigning projects.
-                </p>
-              ) : null}
-              {users.map((user) => (
-                <label
-                  className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
-                  key={user.id}
-                >
-                  <input
-                    checked={selectedMembers.includes(user.id)}
-                    className="h-4 w-4 accent-zinc-950 dark:accent-white"
-                    onChange={() => toggleMember(user.id)}
-                    type="checkbox"
-                  />
-                  {user.name}
-                </label>
-              ))}
+      {canEditBudgets ? (
+        <Card className="p-4">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <input
+                className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Project name"
+                required
+                value={name}
+              />
+              <input
+                className="h-10 rounded-md border border-zinc-200 bg-zinc-50 px-3 text-sm outline-none focus:ring-2 focus:ring-zinc-950 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:ring-white"
+                onChange={(event) => setClient(event.target.value)}
+                placeholder="Client"
+                required
+                value={client}
+              />
+              <Button icon={<Plus size={16} />} type="submit">
+                Add project
+              </Button>
             </div>
-          </div>
-        </form>
-      </Card>
+            <div>
+              <p className="mb-2 text-sm font-medium">Assign people</p>
+              <div className="flex flex-wrap gap-2">
+                {visibleUsers.length === 0 ? (
+                  <p className="text-sm text-zinc-500">
+                    Create users in Admin before assigning projects.
+                  </p>
+                ) : null}
+                {visibleUsers.map((user) => (
+                  <label
+                    className="flex cursor-pointer items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                    key={user.id}
+                  >
+                    <input
+                      checked={selectedMembers.includes(user.id)}
+                      className="h-4 w-4 accent-zinc-950 dark:accent-white"
+                      onChange={() => toggleMember(user.id)}
+                      type="checkbox"
+                    />
+                    {user.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          </form>
+        </Card>
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-3">
-        {projects.map((project) => {
+        {visibleProjects.map((project) => {
           const progress = Math.min(
             100,
-            Math.round((project.trackedHours / project.budgetHours) * 100),
+            project.budgetHours > 0
+              ? Math.round((project.trackedHours / project.budgetHours) * 100)
+              : 0,
           )
 
           return (

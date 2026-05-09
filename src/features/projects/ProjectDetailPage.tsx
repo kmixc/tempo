@@ -3,7 +3,11 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { formatHours } from '../../lib/format'
-import { canManageProjectBudgets, visibleEntriesForUser } from '../../lib/permissions'
+import {
+  canManageProjectBudgets,
+  visibleEntriesForUser,
+  visibleProjectsForUser,
+} from '../../lib/permissions'
 import { useAuthStore } from '../../stores/authStore'
 import { useWorkspaceStore } from '../../stores/workspaceStore'
 import type { ProjectStatus } from '../../types'
@@ -15,19 +19,22 @@ export function ProjectDetailPage() {
   const viewer = useAuthStore((state) => state.user)
   const {
     projects,
+    teams,
     timeEntries,
     updateProject,
     updateProjectBudget,
     users,
   } = useWorkspaceStore()
-  const project = projects.find((item) => item.id === projectId)
+  const project = visibleProjectsForUser(projects, teams, viewer).find(
+    (item) => item.id === projectId,
+  )
 
   if (!project) {
     return <Navigate to="/projects" replace />
   }
 
   const canEditProject = viewer ? canManageProjectBudgets(viewer.role) : false
-  const entries = visibleEntriesForUser(timeEntries, users, viewer).filter(
+  const entries = visibleEntriesForUser(timeEntries, viewer, teams).filter(
     (entry) => entry.projectId === project.id,
   )
   const progress =

@@ -20,10 +20,11 @@ export function ReportsPage() {
     timeEntries,
     updateTimeEntry,
     users,
+    teams,
   } = useWorkspaceStore()
   const viewer = useAuthStore((state) => state.user)
   const [isEditing, setIsEditing] = useState(false)
-  const visibleEntries = visibleEntriesForUser(timeEntries, users, viewer)
+  const visibleEntries = visibleEntriesForUser(timeEntries, viewer, teams)
   const canEditDuration = viewer ? canEditTimeEntries(viewer.role) : false
   const showEditControls = canEditDuration && isEditing
   const canSeeWages = viewer?.role !== 'Member'
