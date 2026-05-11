@@ -2,7 +2,7 @@ import { Banknote, Clock3, Target, Users } from 'lucide-react'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
-import { formatCurrency, formatHours } from '../../lib/format'
+import { formatCurrency, formatDuration, formatHours } from '../../lib/format'
 import {
   budgetProgressForProject,
   hourlyRateFor,
@@ -111,7 +111,7 @@ export function DashboardPage() {
                     {entry.billable ? 'Billable' : 'Internal'}
                   </Badge>
                   <p className="font-mono text-sm text-zinc-700 dark:text-zinc-300">
-                    {formatHours(entry.duration)}
+                    {formatDuration(entry.duration)}
                   </p>
                 </div>
               )

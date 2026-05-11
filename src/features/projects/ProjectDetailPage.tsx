@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui/Badge'
 import { Card } from '../../components/ui/Card'
-import { formatHours } from '../../lib/format'
+import { formatDuration } from '../../lib/format'
 import {
   budgetProgressForProject,
   canManageProjectBudgets,
@@ -182,7 +182,7 @@ export function ProjectDetailPage() {
                 <Badge tone={entry.billable ? 'green' : 'zinc'}>
                   {entry.billable ? 'Billable' : 'Internal'}
                 </Badge>
-                <p className="font-mono text-sm">{formatHours(entry.duration)}</p>
+                <p className="font-mono text-sm">{formatDuration(entry.duration)}</p>
               </div>
             )
           })}

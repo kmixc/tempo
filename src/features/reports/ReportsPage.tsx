@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { StatCard } from '../../components/ui/StatCard'
-import { formatCurrency, formatHours } from '../../lib/format'
+import { formatCurrency, formatDuration, formatHours } from '../../lib/format'
 import type { TimeEntryChange } from '../../types'
 import {
   canEditTimeEntry,
@@ -329,7 +329,7 @@ export function ReportsPage() {
                           defaultValue={(entry.duration / 3600).toFixed(2)}
                         />
                       ) : (
-                        <span className="font-mono">{formatHours(entry.duration)}</span>
+                        <span className="font-mono">{formatDuration(entry.duration)}</span>
                       )}
                     </td>
                     {showChangeLog ? (

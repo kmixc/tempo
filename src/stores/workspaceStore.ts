@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { formatDuration } from '../lib/format'
 import { workspaceService } from '../services/workspaceService'
 import type {
   Project,
@@ -47,7 +48,7 @@ function formatTimeEntryFieldValue(params: {
   }
 
   if (field === 'hours') {
-    return `${(Number(value ?? 0) / 3600).toFixed(2)} h`
+    return formatDuration(Number(value ?? 0))
   }
 
   const normalizedValue = typeof value === 'string' ? value : String(value ?? '')
